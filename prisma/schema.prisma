@@ -10,6 +10,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  ADMIN
+  USER
+  EDITOR
+}
+
 model User {
   id        Int     @id @default(autoincrement())
   email     String  @unique
@@ -18,38 +24,59 @@ model User {
   role      Role    @default(USER)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  
   articles  Article[]
-  author    Author?
-}
-
-model Author {
-  id        Int     @id @default(autoincrement())
-  userId    Int     @unique
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  bio       String?
-  avatar    String?
-  articles  Article[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  projects  Project[]
+  images    Image[]
 }
 
 model Article {
   id        Int     @id @default(autoincrement())
   title     String
   content   String
-  image     String?
-  authorId  Int
-  author    Author  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  slug      String  @unique
+  published Boolean @default(false)
   userId    Int
   user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  published Boolean @default(false)
-  views     Int     @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  
+  images    Image[]
+  
+  @@index([userId])
 }
 
-enum Role {
-  ADMIN
-  USER
-  EDITOR
+model Project {
+  id          Int     @id @default(autoincrement())
+  title       String
+  description String?
+  slug        String  @unique
+  featured    Boolean @default(false)
+  userId      Int
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  images      Image[]
+  
+  @@index([userId])
+}
+
+model Image {
+  id        Int     @id @default(autoincrement())
+  url       String  @unique
+  alt       String?
+  caption   String?
+  userId    Int
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  articleId Int?
+  article   Article? @relation(fields: [articleId], references: [id], onDelete: SetNull)
+  projectId Int?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([articleId])
+  @@index([projectId])
 }
