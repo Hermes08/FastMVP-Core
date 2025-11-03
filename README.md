@@ -11,6 +11,7 @@ A comprehensive Full-Stack Framework for building MVPs (Minimum Viable Products)
 - **SEO-Optimized**: Built-in SEO components and meta tag management
 - **Database-Agnostic**: Prisma ORM with easy migration support
 - **Real-time Capabilities**: Supabase real-time subscriptions ready
+- **Secure by Default**: Row Level Security (RLS) policies and authentication
 
 ## Project Structure
 
@@ -34,252 +35,278 @@ FastMVP-Core/
 │   ├── lib/
 │   │   ├── db.ts (Supabase client)
 │   │   ├── api.ts (API helpers)
-│   │   ├── auth.ts (Authentication utilities)
-│   │   └── utils.ts (General utilities)
+│   │   └── auth.ts (Authentication utilities)
 │   ├── pages/
-│   │   ├── api/
-│   │   │   ├── auth/
-│   │   │   │   ├── login.ts
-│   │   │   │   ├── register.ts
-│   │   │   │   └── logout.ts
-│   │   │   ├── users/
-│   │   │   │   ├── [id].ts
-│   │   │   │   └── index.ts
-│   │   │   └── health.ts
-│   │   ├── _document.tsx
-│   │   ├── _app.tsx
-│   │   ├── index.tsx (Home)
-│   │   ├── dashboard.tsx
-│   │   ├── profile.tsx
-│   │   └── 404.tsx
-│   ├── styles/
-│   │   ├── globals.css
-│   │   ├── variables.css
-│   │   └── components.css
-│   └── types/
-│       ├── index.ts
-│       ├── api.ts
-│       └── models.ts
+│   │   ├── api/ (API routes)
+│   │   ├── articles/
+│   │   ├── projects/
+│   │   └── [...routes]
+│   └── styles/
 ├── prisma/
-│   ├── schema.prisma
-│   └── migrations/
-│       └── init/
-│           └── migration.sql
-├── supabase/
-│   ├── migrations/
-│   ├── functions/
-│   └── config.toml
+│   └── schema.prisma (Data model definitions)
+├── scripts/
+│   └── supabase_setup.sql (Database schema with RLS)
 ├── public/
-│   ├── favicon.ico
-│   └── logo.svg
 ├── .env.example
-├── .env.local
-├── .gitignore
 ├── next.config.js
-├── tsconfig.json
-├── package.json
-├── postcss.config.js
-├── tailwind.config.js
-└── README.md
+└── package.json
 ```
 
-## Quick Start
+## Getting Started
 
 ### Prerequisites
+
 - Node.js 18+
 - npm or yarn
 - Supabase account
-- Git
+- Vercel account (for deployment)
 
 ### Installation
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/Hermes08/FastMVP-Core.git
-   cd FastMVP-Core
-   ```
+1. Clone the repository:
+```bash
+git clone https://github.com/Hermes08/FastMVP-Core.git
+cd FastMVP-Core
+```
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+2. Install dependencies:
+```bash
+npm install
+# or
+yarn install
+```
 
-3. **Set up environment variables**
-   ```bash
-   cp .env.example .env.local
-   # Edit .env.local with your Supabase credentials
-   ```
+3. Set up environment variables:
+```bash
+cp .env.example .env.local
+```
 
-4. **Run database migrations**
-   ```bash
-   npx prisma migrate dev --name init
-   ```
+Fill in your Supabase credentials in `.env.local`
 
-5. **Start development server**
-   ```bash
-   npm run dev
-   ```
+## Database Setup (Supabase)
 
-6. **Open browser**
-   Visit `http://localhost:3000`
+### 1. Create a Supabase Project
 
-## Development
+1. Go to [supabase.com](https://supabase.com)
+2. Sign in or create an account
+3. Create a new project
+4. Note your project URL and API keys
 
-### Available Scripts
+### 2. Run the Setup Script
+
+Execute the SQL setup script to create all tables, indexes, and Row Level Security policies:
+
+```sql
+-- Option 1: Use Supabase SQL Editor
+-- 1. Open your project in Supabase
+-- 2. Go to SQL Editor
+-- 3. Create a new query
+-- 4. Copy the entire content from scripts/supabase_setup.sql
+-- 5. Execute the query
+
+-- Option 2: Using psql (if you have PostgreSQL client installed)
+psql -h [your-supabase-host] -U postgres -d postgres < scripts/supabase_setup.sql
+```
+
+The setup script creates:
+- **Users** table with authentication integration
+- **Articles** table for blog/content management
+- **Projects** table for portfolio/project showcase
+- **Images** table for asset management
+- Row Level Security policies for data protection
+- Performance indexes
+- Test seed data
+
+### 3. Schema Overview
+
+#### Users Table
+```sql
+- id: BIGSERIAL (Primary Key)
+- email: VARCHAR (UNIQUE)
+- name: VARCHAR
+- password: VARCHAR (hashed)
+- role: ENUM (ADMIN, USER, EDITOR)
+- created_at: TIMESTAMP
+- updated_at: TIMESTAMP
+```
+
+#### Articles Table
+```sql
+- id: BIGSERIAL (Primary Key)
+- title: VARCHAR
+- content: TEXT
+- slug: VARCHAR (UNIQUE)
+- published: BOOLEAN
+- user_id: BIGINT (Foreign Key → users.id)
+- created_at: TIMESTAMP
+- updated_at: TIMESTAMP
+```
+
+#### Projects Table
+```sql
+- id: BIGSERIAL (Primary Key)
+- title: VARCHAR
+- description: TEXT
+- slug: VARCHAR (UNIQUE)
+- featured: BOOLEAN
+- user_id: BIGINT (Foreign Key → users.id)
+- created_at: TIMESTAMP
+- updated_at: TIMESTAMP
+```
+
+#### Images Table
+```sql
+- id: BIGSERIAL (Primary Key)
+- url: VARCHAR (UNIQUE)
+- alt: VARCHAR
+- caption: TEXT
+- user_id: BIGINT (Foreign Key → users.id)
+- article_id: BIGINT (Foreign Key → articles.id, nullable)
+- project_id: BIGINT (Foreign Key → projects.id, nullable)
+- created_at: TIMESTAMP
+- updated_at: TIMESTAMP
+```
+
+## Row Level Security (RLS)
+
+All tables have Row Level Security policies enabled for security:
+
+### Users Table Policies
+- **SELECT**: Public read access (everyone can view user profiles)
+- **UPDATE**: Users can only update their own profile
+- **INSERT**: Users can create their own profile
+- **DELETE**: Only admins can delete users
+
+### Articles Table Policies
+- **SELECT (Published)**: Everyone can see published articles
+- **SELECT (Own)**: Users can see their own articles (published or not)
+- **INSERT**: Authenticated users can create articles
+- **UPDATE**: Users can only update their own articles
+- **DELETE**: Users can only delete their own articles
+
+### Projects Table Policies
+- **SELECT**: Everyone can see all projects
+- **INSERT**: Authenticated users can create projects
+- **UPDATE**: Users can only update their own projects
+- **DELETE**: Users can only delete their own projects
+
+### Images Table Policies
+- **SELECT**: Everyone can view all images
+- **INSERT**: Authenticated users can upload images
+- **UPDATE**: Users can only modify their own images
+- **DELETE**: Users can only delete their own images
+
+## Prisma Setup
+
+### Initialize Prisma
 
 ```bash
-# Development server
-npm run dev
+# Generate Prisma Client
+npm run prisma:generate
 
-# Build for production
-npm run build
-
-# Start production server
-npm run start
-
-# Run tests
-npm run test
-
-# Lint code
-npm run lint
-
-# Format code
-npm run format
-
-# Database migrations
-npx prisma migrate dev
-npx prisma generate
-npx prisma studio
+# or
+yarn prisma generate
 ```
 
-## Core Technologies
+### Database Migrations
 
-### Frontend
-- **Next.js 14**: React framework with SSR/SSG capabilities
-- **React 18**: UI library
-- **TypeScript**: Type safety and better DX
-- **Tailwind CSS**: Utility-first CSS framework
-- **PostCSS**: CSS processing
+```bash
+# Create a new migration
+npm run prisma:migrate:create -- --name initial
 
-### Backend
-- **Next.js API Routes**: Serverless functions
-- **Prisma ORM**: Type-safe database client
-- **Supabase**: PostgreSQL database, authentication, and real-time APIs
+# Apply migrations
+npm run prisma:migrate:deploy
 
-### DevTools
-- **ESLint**: Code quality
-- **Prettier**: Code formatting
-- **Jest/React Testing Library**: Testing
-
-## Authentication
-
-Authentication is handled by Supabase:
-
-```typescript
-// Using Supabase client
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(url, key)
-
-// Sign up
-await supabase.auth.signUp({
-  email: 'user@example.com',
-  password: 'password123'
-})
-
-// Sign in
-await supabase.auth.signInWithPassword({
-  email: 'user@example.com',
-  password: 'password123'
-})
+# Push schema to database (development)
+npm run prisma:db:push
 ```
 
-## Database
+## Environment Variables
 
-### Using Prisma
+Create a `.env.local` file in the root directory:
 
-```typescript
-import { PrismaClient } from '@prisma/client'
+```env
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_KEY=your-service-key
 
-const prisma = new PrismaClient()
+# Database
+DATABASE_URL=postgresql://postgres:password@your-project.supabase.co:5432/postgres
 
-// Create
-await prisma.user.create({
-  data: { email: 'user@example.com' }
-})
-
-// Read
-await prisma.user.findUnique({
-  where: { id: userId }
-})
-
-// Update
-await prisma.user.update({
-  where: { id: userId },
-  data: { name: 'New Name' }
-})
-
-// Delete
-await prisma.user.delete({
-  where: { id: userId }
-})
-```
-
-## API Endpoints
-
-### Health Check
-```
-GET /api/health
-Response: { status: 'ok' }
-```
-
-### Authentication
-```
-POST /api/auth/register
-Body: { email, password }
-
-POST /api/auth/login
-Body: { email, password }
-
-POST /api/auth/logout
-```
-
-### Users
-```
-GET /api/users - Get all users
-GET /api/users/[id] - Get user by ID
-PUT /api/users/[id] - Update user
-DELETE /api/users/[id] - Delete user
+# Next.js
+NEXT_PUBLIC_API_URL=http://localhost:3000
+NODE_ENV=development
 ```
 
 ## Deployment
 
-### Deploy to Vercel (Recommended)
+### Vercel Deployment
+
+1. Push your code to GitHub
+2. Go to [vercel.com](https://vercel.com)
+3. Click "New Project"
+4. Select your FastMVP-Core repository
+5. Configure environment variables (same as `.env.local`)
+6. Click "Deploy"
+
+**Connected Services:**
+- ✅ Supabase (Database & Authentication)
+- ✅ GitHub (Version Control)
+- ✅ Vercel (Hosting & Deployment)
+
+### Production Checklist
+
+- [ ] Set up custom domain in Vercel
+- [ ] Configure Supabase password authentication policies
+- [ ] Set up Supabase email templates
+- [ ] Enable HTTPS and security headers
+- [ ] Configure CORS in Supabase
+- [ ] Set up monitoring and logging
+- [ ] Test RLS policies thoroughly
+- [ ] Backup database configuration
+
+## API Routes
+
+Example API endpoints:
 
 ```bash
-# Install Vercel CLI
-npm i -g vercel
+# Articles
+GET  /api/articles          # Get all published articles
+GET  /api/articles/[id]     # Get article by ID
+POST /api/articles          # Create new article (authenticated)
+PUT  /api/articles/[id]     # Update article (owner only)
+DELETE /api/articles/[id]   # Delete article (owner only)
 
-# Deploy
-vercel
+# Projects
+GET  /api/projects          # Get all projects
+GET  /api/projects/[id]     # Get project by ID
+POST /api/projects          # Create new project (authenticated)
+PUT  /api/projects/[id]     # Update project (owner only)
+DELETE /api/projects/[id]   # Delete project (owner only)
+
+# Images
+GET  /api/images            # Get all images
+GET  /api/images/[id]       # Get image by ID
+POST /api/images            # Upload image (authenticated)
+DELETE /api/images/[id]     # Delete image (owner only)
 ```
 
-### Deploy with Docker
+## Development
 
-See `Dockerfile` for containerized deployment.
+```bash
+# Run development server
+npm run dev
+# or
+yarn dev
 
-### Environment Variables for Production
-
-Set these in your deployment platform:
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `DATABASE_URL` (for Prisma)
+# Open http://localhost:3000 in your browser
+```
 
 ## Testing
 
 ```bash
-# Run all tests
+# Run tests
 npm run test
 
 # Run tests in watch mode
@@ -289,7 +316,28 @@ npm run test:watch
 npm run test:coverage
 ```
 
+## Troubleshooting
+
+### Common Issues
+
+1. **RLS Policy Errors**
+   - Ensure Supabase Auth is properly configured
+   - Verify auth.uid() is returning correct user ID
+   - Check that auth.roles() contains correct role
+
+2. **Database Connection Issues**
+   - Verify DATABASE_URL is correct
+   - Check Supabase project is active
+   - Ensure IP whitelist allows your connection
+
+3. **Prisma Issues**
+   - Run `npm run prisma:generate` to regenerate client
+   - Check schema.prisma syntax
+   - Verify database connection string
+
 ## Contributing
+
+Contributions are welcome! Please follow these steps:
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -297,70 +345,32 @@ npm run test:coverage
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## Code Style
-
-- TypeScript strict mode enabled
-- ESLint configuration included
-- Prettier for code formatting
-- Husky pre-commit hooks recommended
-
-## Performance Optimization
-
-- Image optimization with Next.js Image
-- Code splitting and lazy loading
-- CSS-in-JS optimization
-- API route optimization
-- Database query optimization with Prisma
-
-## Security
-
-- Environment variables for sensitive data
-- SQL injection prevention with Prisma
-- XSS protection with React
-- CSRF tokens in forms
-- Rate limiting recommendations
-- CORS configuration
-
-## Troubleshooting
-
-### Supabase Connection Issues
-- Verify `NEXT_PUBLIC_SUPABASE_URL` and keys
-- Check Supabase project is active
-- Verify network connectivity
-
-### Database Migration Issues
-- Run `npx prisma migrate reset` (use with caution)
-- Check Prisma schema syntax
-- Verify database permissions
-
-### Build Issues
-- Clear `.next` directory: `rm -rf .next`
-- Reinstall dependencies: `rm -rf node_modules && npm install`
-- Check Node.js version compatibility
-
 ## License
 
-MIT License - feel free to use this for your projects!
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Support
 
-For issues and questions:
-- GitHub Issues: [FastMVP-Core Issues](https://github.com/Hermes08/FastMVP-Core/issues)
-- Documentation: [Full Docs](./docs)
+For support, email support@fastmvp.com or open an issue on GitHub.
 
 ## Roadmap
 
-- [ ] GraphQL support
-- [ ] WebSocket integration
-- [ ] Advanced caching strategies
-- [ ] Monitoring and analytics
-- [ ] CLI tool for scaffolding
-- [ ] Plugin system
+- [ ] Email notifications system
+- [ ] Advanced search and filtering
+- [ ] Multi-language support (i18n)
+- [ ] Analytics dashboard
+- [ ] API documentation (Swagger/OpenAPI)
+- [ ] Rate limiting and API quotas
+- [ ] GraphQL API layer
+- [ ] WebSocket real-time features
 
-## Changelog
+## Authors
 
-See [CHANGELOG.md](./CHANGELOG.md) for version history.
+- **FastMVP Team** - Initial work - [GitHub](https://github.com/Hermes08)
 
----
+## Acknowledgments
 
-**Built with ❤️ for the MVP community**
+- Next.js for the amazing framework
+- Supabase for the database and auth solution
+- Vercel for hosting and deployment
+- Prisma for the powerful ORM
