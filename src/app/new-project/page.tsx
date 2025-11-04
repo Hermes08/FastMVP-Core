@@ -3,7 +3,38 @@
 import React, { useState } from 'react';
 import Sidebar from '../../components/Sidebar';
 
+// TODO: Integración futura con DB - Estas credenciales se cargarán desde la base de datos
+const MOCK_SAVED_CREDENTIALS = [
+  {
+    id: 'default',
+    name: 'Nuevo (vacío)',
+    supabaseUrl: '',
+    supabaseKey: '',
+    vercelToken: '',
+    pexelsKey: '',
+  },
+  {
+    id: 'prod-main',
+    name: 'Producción Principal',
+    supabaseUrl: 'https://xxxx.supabase.co',
+    supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+    vercelToken: 'vercel_xxx_prod',
+    pexelsKey: 'pexels_api_key_prod',
+  },
+  {
+    id: 'dev-test',
+    name: 'Desarrollo y Testing',
+    supabaseUrl: 'https://dev-xxxx.supabase.co',
+    supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9_dev...',
+    vercelToken: 'vercel_xxx_dev',
+    pexelsKey: 'pexels_api_key_dev',
+  },
+];
+
 export default function NewProjectPage() {
+  // Estado para selección de credenciales guardadas
+  const [selectedCredentialId, setSelectedCredentialId] = useState('default');
+  
   // Estado local para capturar las credenciales API
   // TODO: Persistir estas credenciales en base de datos para integración futura
   const [apiCredentials, setApiCredentials] = useState({
@@ -20,11 +51,134 @@ export default function NewProjectPage() {
     }));
   };
 
+  // Manejar cambio de credenciales guardadas
+  const handleCredentialSelect = (credentialId: string) => {
+    setSelectedCredentialId(credentialId);
+    const selected = MOCK_SAVED_CREDENTIALS.find(c => c.id === credentialId);
+    if (selected) {
+      setApiCredentials({
+        supabaseUrl: selected.supabaseUrl,
+        supabaseKey: selected.supabaseKey,
+        vercelToken: selected.vercelToken,
+        pexelsKey: selected.pexelsKey,
+      });
+    }
+  };
+
+  // TODO: Función para guardar nuevas credenciales en DB
+  const handleSaveCredentials = () => {
+    // Aquí se haría la integración con la DB para persistir las credenciales
+    console.log('Guardar credenciales:', apiCredentials);
+    alert('Credenciales guardadas (simulado). TODO: Integrar con DB');
+  };
+
   return (
     <div style={{ display: 'flex' }}>
       <Sidebar />
       <main style={{ padding: '2rem', flex: 1 }}>
         <h1>Crear nuevo proyecto (Setup 5DS MVP)</h1>
+        
+        {/* NUEVA SECCIÓN: Selector de credenciales guardadas */}
+        <section style={{ marginBottom: '2rem', padding: '1.5rem', backgroundColor: '#f5f5f5', borderRadius: '8px', border: '2px solid #ddd' }}>
+          <h2 style={{ marginBottom: '1rem', fontSize: '1.3rem' }}>🔑 Credenciales del Proyecto</h2>
+          
+          <div style={{ marginBottom: '1rem' }}>
+            <label htmlFor="credential-select" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+              Seleccionar credenciales guardadas:
+            </label>
+            <select
+              id="credential-select"
+              value={selectedCredentialId}
+              onChange={(e) => handleCredentialSelect(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                fontSize: '1rem',
+                borderRadius: '4px',
+                border: '1px solid #ccc',
+                backgroundColor: 'white',
+              }}
+            >
+              {MOCK_SAVED_CREDENTIALS.map((cred) => (
+                <option key={cred.id} value={cred.id}>
+                  {cred.name}
+                </option>
+              ))}
+            </select>
+            <small style={{ display: 'block', marginTop: '0.5rem', color: '#666' }}>
+              💡 Selecciona un set de credenciales guardadas o edita/crea nuevas abajo.
+            </small>
+          </div>
+
+          {/* Inputs de credenciales (editables) */}
+          <div style={{ marginTop: '1.5rem', padding: '1rem', backgroundColor: 'white', borderRadius: '4px', border: '1px solid #ddd' }}>
+            <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Editar o agregar credenciales:</h3>
+            
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.3rem', fontWeight: '500' }}>Supabase URL:</label>
+              <input
+                type="text"
+                value={apiCredentials.supabaseUrl}
+                onChange={(e) => handleInputChange('supabaseUrl', e.target.value)}
+                placeholder="https://xxxx.supabase.co"
+                style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.3rem', fontWeight: '500' }}>Supabase Anon Key:</label>
+              <input
+                type="password"
+                value={apiCredentials.supabaseKey}
+                onChange={(e) => handleInputChange('supabaseKey', e.target.value)}
+                placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.3rem', fontWeight: '500' }}>Vercel Token:</label>
+              <input
+                type="password"
+                value={apiCredentials.vercelToken}
+                onChange={(e) => handleInputChange('vercelToken', e.target.value)}
+                placeholder="vercel_xxx"
+                style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.3rem', fontWeight: '500' }}>Pexels API Key:</label>
+              <input
+                type="password"
+                value={apiCredentials.pexelsKey}
+                onChange={(e) => handleInputChange('pexelsKey', e.target.value)}
+                placeholder="pexels_api_key"
+                style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc' }}
+              />
+            </div>
+
+            <button
+              onClick={handleSaveCredentials}
+              style={{
+                padding: '0.75rem 1.5rem',
+                backgroundColor: '#0070f3',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                marginTop: '0.5rem',
+              }}
+            >
+              💾 Guardar estas credenciales (Mock)
+            </button>
+            <small style={{ display: 'block', marginTop: '0.5rem', color: '#666' }}>
+              {/* TODO: Integrar con DB - Al hacer clic, las credenciales se guardarán en la base de datos */}
+              Las credenciales se guardarán para uso futuro. Integración con DB pendiente.
+            </small>
+          </div>
+        </section>
         
         {/* Acordeón paso 1 */}
         <section style={{ marginBottom: '2rem' }}>
@@ -34,93 +188,6 @@ export default function NewProjectPage() {
         {/* Acordeón paso 2 */}
         <section style={{ marginBottom: '2rem' }}>
           <h2>2. Vincular repositorio GitHub</h2>
-        </section>
-        
-        {/* Acordeón paso 3 */}
-        <section style={{ marginBottom: '2rem' }}>
-          <h2>3. Configuración Vercel</h2>
-        </section>
-
-        {/* Nueva sección: Formulario de Credenciales API */}
-        <section style={{ marginTop: '3rem', padding: '1.5rem', border: '1px solid #ccc', borderRadius: '8px' }}>
-          <h2 style={{ marginBottom: '1rem' }}>4. Credenciales API (Integraciones Futuras)</h2>
-          <p style={{ marginBottom: '1.5rem', color: '#666' }}>
-            Ingrese las credenciales para integraciones futuras. Estos datos se almacenarán para uso posterior.
-          </p>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {/* Supabase URL */}
-            <div>
-              <label htmlFor="supabaseUrl" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                Supabase URL:
-              </label>
-              <input
-                id="supabaseUrl"
-                type="text"
-                placeholder="https://xxxx.supabase.co"
-                value={apiCredentials.supabaseUrl}
-                onChange={(e) => handleInputChange('supabaseUrl', e.target.value)}
-                style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }}
-              />
-            </div>
-
-            {/* Supabase Key */}
-            <div>
-              <label htmlFor="supabaseKey" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                Supabase Key:
-              </label>
-              <input
-                id="supabaseKey"
-                type="password"
-                placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                value={apiCredentials.supabaseKey}
-                onChange={(e) => handleInputChange('supabaseKey', e.target.value)}
-                style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }}
-              />
-            </div>
-
-            {/* Vercel Token */}
-            <div>
-              <label htmlFor="vercelToken" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                Vercel Token:
-              </label>
-              <input
-                id="vercelToken"
-                type="password"
-                placeholder="xxxxxxxxxxxxxxxxxxxxxxxx"
-                value={apiCredentials.vercelToken}
-                onChange={(e) => handleInputChange('vercelToken', e.target.value)}
-                style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }}
-              />
-            </div>
-
-            {/* Pexels Key */}
-            <div>
-              <label htmlFor="pexelsKey" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                Pexels Key:
-              </label>
-              <input
-                id="pexelsKey"
-                type="password"
-                placeholder="API Key de Pexels"
-                value={apiCredentials.pexelsKey}
-                onChange={(e) => handleInputChange('pexelsKey', e.target.value)}
-                style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }}
-              />
-            </div>
-          </div>
-
-          {/* Mostrar estado actual (solo para desarrollo) */}
-          <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
-            <h3 style={{ marginBottom: '0.5rem' }}>Estado actual (para verificación):</h3>
-            <pre style={{ fontSize: '0.85rem', overflow: 'auto' }}>
-              {JSON.stringify(apiCredentials, null, 2)}
-            </pre>
-            <p style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#666', fontStyle: 'italic' }}>
-              // TODO: Implementar persistencia en base de datos<br />
-              // Estos valores se almacenarán en la tabla de proyectos o en una tabla dedicada de credenciales
-            </p>
-          </div>
         </section>
       </main>
     </div>
