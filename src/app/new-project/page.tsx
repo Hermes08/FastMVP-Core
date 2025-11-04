@@ -1,179 +1,383 @@
-// src/app/new-project/page.tsx
 'use client';
-import React, { useState } from 'react';
-
-// Paso 3: Features configurables (pueden ser extendidos)
-const FEATURES = [
-  { key: 'auth', label: 'Autenticación' },
-  { key: 'database', label: 'Base de datos' },
-  { key: 'dashboard', label: 'Dashboard' },
-  { key: 'storage', label: 'Almacenamiento de archivos' },
-  { key: 'images', label: 'API de imágenes (Pexels)' },
-  { key: 'ai', label: 'Integración AI' },
-];
-
-// Mock para credenciales guardadas
-const MOCK_SAVED_CREDENTIALS = [
-  { id: 'default', name: 'Nuevo (vacío)', supabaseUrl: '', supabaseKey: '', vercelToken: '', pexelsKey: '' },
-  { id: 'prod-main', name: 'Producción Principal', supabaseUrl: 'https://xxxx.supabase.co', supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...', vercelToken: 'vercel_xxx_prod', pexelsKey: 'pexels_api_key_prod' },
-  { id: 'dev-test', name: 'Desarrollo y Testing', supabaseUrl: 'https://dev-xxxx.supabase.co', supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9_dev...', vercelToken: 'vercel_xxx_dev', pexelsKey: 'pexels_api_key_dev' },
-];
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { 
+  Search, 
+  Boxes, 
+  Brain, 
+  Mouse, 
+  Github, 
+  Code as CodeIcon, 
+  Database, 
+  Rocket, 
+  Check, 
+  Copy, 
+  ChevronDown, 
+  ChevronUp, 
+  ExternalLink 
+} from 'lucide-react';
 
 export default function NewProjectPage() {
-  const [step, setStep] = useState(0);
-  const [projectName, setProjectName] = useState('');
-  const [projectDescription, setProjectDescription] = useState('');
-  const [selectedFeatures, setSelectedFeatures] = useState([]);
-  const [selectedCredentialId, setSelectedCredentialId] = useState(MOCK_SAVED_CREDENTIALS[0].id);
-  const credentials = MOCK_SAVED_CREDENTIALS.find(c => c.id === selectedCredentialId) || MOCK_SAVED_CREDENTIALS[0];
-  const [customCredentials, setCustomCredentials] = useState({
-    supabaseUrl: credentials.supabaseUrl,
-    supabaseKey: credentials.supabaseKey,
-    vercelToken: credentials.vercelToken,
-    pexelsKey: credentials.pexelsKey,
+  const [projectName, setProjectName] = useState('Untitled Project');
+  const [expandedSections, setExpandedSections] = useState({
+    research: true,
+    features: false,
+    ai: false,
+    cursor: false,
+    github: false,
+    claude: false,
+    supabase: false,
+    vercel: false,
+    generate: false,
   });
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
 
-  // Sincroniza los campos al cambiar credenciales guardadas
-  React.useEffect(() => {
-    setCustomCredentials({
-      supabaseUrl: credentials.supabaseUrl,
-      supabaseKey: credentials.supabaseKey,
-      vercelToken: credentials.vercelToken,
-      pexelsKey: credentials.pexelsKey,
-    });
-  }, [selectedCredentialId]);
+  const [projectData, setProjectData] = useState({
+    description: '',
+    features: [] as string[],
+    aiModels: [] as string[],
+    cursor: { installed: false, ready: false },
+    github: { repo: '', ready: false },
+    claudeCode: { installed: false, ready: false },
+    supabase: {
+      projectId: '',
+      url: '',
+      anonKey: '',
+      serviceKey: '',
+      ready: false,
+    },
+    vercel: { url: '', ready: false },
+  });
 
-  const handleFeatureChange = (featureKey) => {
-    setSelectedFeatures(prev => prev.includes(featureKey) ? prev.filter(f => f !== featureKey) : [...prev, featureKey]);
+  const [generatedCommand, setGeneratedCommand] = useState('');
+  const [showInstructions, setShowInstructions] = useState(false);
+
+  const features = [
+    { id: 'user-management', name: 'User Management', desc: 'Authentication & user profiles' },
+    { id: 'data-handling', name: 'Data Handling', desc: 'CRUD operations & data management' },
+    { id: 'csv-upload', name: 'CSV Upload', desc: 'Bulk data import from CSV files' },
+    { id: 'manual-entry', name: 'Manual Entry', desc: 'Form-based data entry interface' },
+    { id: 'export-results', name: 'Export Results', desc: 'Export data to CSV/JSON formats' },
+    { id: 'saved-lists', name: 'Saved Lists', desc: 'Save and manage custom data lists' },
+  ];
+
+  const aiModels = [
+    { id: 'claude-sonnet', name: 'Anthropic Claude Sonnet 4', desc: 'Best for analysis and reasoning' },
+    { id: 'gpt-5', name: 'OpenAI GPT-5', desc: 'General purpose AI assistant' },
+    { id: 'gemini', name: 'Google Gemini 2.5 Pro', desc: 'Multimodal AI capabilities' },
+  ];
+
+  const imageModels = [
+    { id: 'imagen', name: 'Google Imagen 4', disabled: true },
+    { id: 'gpt-image', name: 'GPT Image 1', disabled: true },
+    { id: 'stable-diffusion', name: 'Stable Diffusion', disabled: false },
+  ];
+
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section as keyof typeof prev] }));
   };
 
-  const nextStep = () => setStep(step + 1);
-  const prevStep = () => setStep(step - 1);
+  const toggleFeature = (id: string) => {
+    setProjectData(prev => ({
+      ...prev,
+      features: prev.features.includes(id)
+        ? prev.features.filter(f => f !== id)
+        : [...prev.features, id]
+    }));
+  };
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setSubmitting(true);
-    setError('');
+  const toggleAIModel = (id: string) => {
+    setProjectData(prev => ({
+      ...prev,
+      aiModels: prev.aiModels.includes(id)
+        ? prev.aiModels.filter(m => m !== id)
+        : [...prev.aiModels, id]
+    }));
+  };
 
-    const body = {
+  const canGenerateFramework = () => {
+    return projectData.description &&
+           projectData.features.length > 0 &&
+           projectData.supabase.projectId;
+  };
+
+  const generateFramework = () => {
+    const config = {
       name: projectName,
-      description: projectDescription,
-      features: selectedFeatures,
-      credentials: customCredentials,
+      description: projectData.description,
+      features: projectData.features,
+      ai: projectData.aiModels,
+      supabase: {
+        id: projectData.supabase.projectId,
+        url: projectData.supabase.url,
+      },
+      github: projectData.github.repo,
     };
-    try {
-      const resp = await fetch('/api/generate-project', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      if (resp.ok) {
-        setSuccess(true);
-      } else {
-        setError('Error al crear el proyecto');
-      }
-    } catch (err) {
-      setError('Error de red al crear el proyecto');
-    }
-    setSubmitting(false);
-  }
+
+    const configId = btoa(JSON.stringify(config)).substring(0, 24);
+    const projectSlug = projectName.toLowerCase().replace(/\s+/g, '-');
+    const command = `npx @5daysprint/framework ${configId}-${projectSlug}`;
+
+    setGeneratedCommand(command);
+    setShowInstructions(true);
+    toggleSection('generate');
+  };
+
+  const copyCommand = () => {
+    navigator.clipboard.writeText(generatedCommand);
+    alert('✅ Command copied to clipboard!');
+  };
+
+  const SectionCard = ({ id, title, desc, icon: Icon, children, ready = false }: any) => (
+    <Card className={expandedSections[id as keyof typeof expandedSections] ? 'border-blue-500' : ''}>
+      <CardHeader className="cursor-pointer" onClick={() => toggleSection(id)}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+              ready ? 'bg-green-600' : expandedSections[id as keyof typeof expandedSections] ? 'bg-blue-600' : 'bg-gray-700'
+            }`}>
+              {ready ? <Check size={20} className="text-white" /> : <Icon size={20} className="text-white" />}
+            </div>
+            <div>
+              <h3 className="font-semibold text-white">{title}</h3>
+              <p className="text-sm text-gray-400">{desc}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {ready && <span className="text-xs text-green-500 font-semibold">● Ready</span>}
+            {expandedSections[id as keyof typeof expandedSections] ? <ChevronUp className="text-gray-400" /> : <ChevronDown className="text-gray-400" />}
+          </div>
+        </div>
+      </CardHeader>
+      {expandedSections[id as keyof typeof expandedSections] && <CardContent>{children}</CardContent>}
+    </Card>
+  );
 
   return (
-    <div style={{ maxWidth: 600, margin: '40px auto', padding: 16, background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.09)' }}>
-      <h1 style={{ textAlign: 'center' }}>Nuevo Proyecto</h1>
-      <form onSubmit={handleSubmit}>
-        {/* Paso 1: Nombre */}
-        <div style={{ marginBottom: 20, border: step === 0 ? '2px solid #1976d2' : '1px solid #ddd', borderRadius: 8, padding: 16, background: step === 0 ? '#f0f6ff' : '#fafbfc' }}>
-          <div onClick={() => setStep(0)} style={{ cursor: 'pointer' }}><b>1. Nombre del Proyecto</b></div>
-          {step === 0 && (
-            <div style={{ marginTop: 8 }}>
-              <input type="text" required autoFocus value={projectName} onChange={e => setProjectName(e.target.value)} placeholder="Nombre..." style={{ width: '100%', fontSize: 16, padding: 8, marginBottom: 8 }}/>
-              <button type="button" onClick={nextStep} disabled={!projectName} style={{ float: 'right', marginLeft: 8 }}>Siguiente</button>
-            </div>
-          )}
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+      <div className="max-w-6xl mx-auto">
+        <div className="mb-6">
+          <div className="text-sm text-gray-400 mb-2">5 Day Sprint › New Project</div>
+          <input
+            type="text"
+            value={projectName}
+            onChange={(e) => setProjectName(e.target.value)}
+            className="text-3xl md:text-4xl font-bold text-white bg-transparent border-b-2 border-transparent hover:border-gray-700 focus:border-blue-500 outline-none transition-colors"
+          />
         </div>
-        {/* Paso 2: Descripción */}
-        <div style={{ marginBottom: 20, border: step === 1 ? '2px solid #1976d2' : '1px solid #ddd', borderRadius: 8, padding: 16, background: step === 1 ? '#f0f6ff' : '#fafbfc' }}>
-          <div onClick={() => setStep(1)} style={{ cursor: 'pointer' }}><b>2. Descripción</b></div>
-          {step === 1 && (
-            <div style={{ marginTop: 8 }}>
-              <textarea value={projectDescription} onChange={e => setProjectDescription(e.target.value)} required placeholder="¿Qué hace el proyecto?" style={{ width: '100%', fontSize: 16, padding: 8, marginBottom: 8 }} />
-              <button type="button" onClick={prevStep} style={{ marginRight: 8 }}>Atrás</button>
-              <button type="button" onClick={nextStep} disabled={!projectDescription}>Siguiente</button>
-            </div>
-          )}
-        </div>
-        {/* Paso 3: Features seleccionables */}
-        <div style={{ marginBottom: 20, border: step === 2 ? '2px solid #1976d2' : '1px solid #ddd', borderRadius: 8, padding: 16, background: step === 2 ? '#f0f6ff' : '#fafbfc' }}>
-          <div onClick={() => setStep(2)} style={{ cursor: 'pointer' }}><b>3. Selecciona Features</b></div>
-          {step === 2 && (
-            <div style={{ marginTop: 8 }}>
-              {FEATURES.map(f => (
-                <label key={f.key} style={{ display: 'block', padding: '4px 0' }}>
-                  <input type="checkbox" checked={selectedFeatures.includes(f.key)} onChange={() => handleFeatureChange(f.key)} /> {f.label}
+
+        <div className="space-y-4">
+          {/* Research */}
+          <SectionCard id="research" title="Research" desc="Define your project vision" icon={Search}>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  What do you want to build?
                 </label>
-              ))}
-              <button type="button" onClick={prevStep} style={{ marginRight: 8 }}>Atrás</button>
-              <button type="button" onClick={nextStep}>Siguiente</button>
+                <textarea
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white min-h-[120px] focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                  placeholder="A streamlined tool for checking domain availability in bulk using CSV uploads. Perfect for domain investors, brand managers, and startup founders who need to quickly validate multiple domain names."
+                  value={projectData.description}
+                  onChange={(e) => setProjectData({...projectData, description: e.target.value})}
+                />
+              </div>
+              {projectData.description && (
+                <Button onClick={() => toggleSection('features')} className="w-full">
+                  Continue to Core Features →
+                </Button>
+              )}
             </div>
-          )}
-        </div>
-        {/* Paso 4: Credenciales */}
-        <div style={{ marginBottom: 20, border: step === 3 ? '2px solid #1976d2' : '1px solid #ddd', borderRadius: 8, padding: 16, background: step === 3 ? '#f0f6ff' : '#fafbfc' }}>
-          <div onClick={() => setStep(3)} style={{ cursor: 'pointer' }}><b>4. Credenciales de servicios</b></div>
-          {step === 3 && (
-            <div style={{ marginTop: 8 }}>
-              <label>Usar credenciales guardadas:
-                <select value={selectedCredentialId} onChange={e => setSelectedCredentialId(e.target.value)} style={{ marginLeft: 8 }}>
-                  {MOCK_SAVED_CREDENTIALS.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
+          </SectionCard>
+
+          {/* Core Features */}
+          <SectionCard
+            id="features"
+            title="Core Features"
+            desc="Select features for your project"
+            icon={Boxes}
+            ready={projectData.features.length > 0}
+          >
+            <div className="space-y-4">
+              {projectData.description && (
+                <div className="bg-blue-900/30 border border-blue-800 rounded-lg p-4">
+                  <h4 className="font-semibold text-white mb-2">Project Overview</h4>
+                  <p className="text-sm text-gray-300">{projectData.description}</p>
+                </div>
+              )}
+
+              <div>
+                <h4 className="font-medium text-white mb-3">Choose features:</h4>
+                <div className="space-y-2">
+                  {features.map((feature) => (
+                    <button
+                      key={feature.id}
+                      onClick={() => toggleFeature(feature.id)}
+                      className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition-all text-left ${
+                        projectData.features.includes(feature.id)
+                          ? 'border-blue-500 bg-blue-500/10'
+                          : 'border-gray-700 bg-gray-800 hover:border-gray-600'
+                      }`}
+                    >
+                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
+                        projectData.features.includes(feature.id)
+                          ? 'bg-blue-600 border-blue-600'
+                          : 'border-gray-600'
+                      }`}>
+                        {projectData.features.includes(feature.id) && <Check size={14} className="text-white" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-white">{feature.name}</div>
+                        <div className="text-xs text-gray-400 truncate">{feature.desc}</div>
+                      </div>
+                    </button>
                   ))}
-                </select>
-              </label>
-              <hr />
-              <label>Supabase URL<br /><input type="text" value={customCredentials.supabaseUrl} onChange={e => setCustomCredentials({ ...customCredentials, supabaseUrl: e.target.value })} style={{ width: '100%' }} /></label><br />
-              <label>Supabase Key<br /><input type="text" value={customCredentials.supabaseKey} onChange={e => setCustomCredentials({ ...customCredentials, supabaseKey: e.target.value })} style={{ width: '100%' }} /></label><br />
-              <label>Vercel Token<br /><input type="text" value={customCredentials.vercelToken} onChange={e => setCustomCredentials({ ...customCredentials, vercelToken: e.target.value })} style={{ width: '100%' }} /></label><br />
-              <label>Pexels Key<br /><input type="text" value={customCredentials.pexelsKey} onChange={e => setCustomCredentials({ ...customCredentials, pexelsKey: e.target.value })} style={{ width: '100%' }} /></label><br />
-              <button type="button" onClick={prevStep} style={{ marginRight: 8 }}>Atrás</button>
-              <button type="button" onClick={nextStep}>Siguiente</button>
+                </div>
+              </div>
+
+              {projectData.features.length > 0 && (
+                <Button onClick={() => toggleSection('ai')} className="w-full">
+                  Continue to AI Integration →
+                </Button>
+              )}
             </div>
-          )}
-        </div>
-        {/* Paso 5: Resumen */}
-        <div style={{ marginBottom: 20, border: step === 4 ? '2px solid #1976d2' : '1px solid #ddd', borderRadius: 8, padding: 16, background: step === 4 ? '#f0f6ff' : '#fafbfc' }}>
-          <div onClick={() => setStep(4)} style={{ cursor: 'pointer' }}><b>5. Resumen</b></div>
-          {step === 4 && (
-            <div style={{ marginTop: 8 }}>
-              <div><b>Nombre:</b> {projectName}</div>
-              <div><b>Descripción:</b> {projectDescription}</div>
-              <div><b>Features:</b> {selectedFeatures.map(fk => FEATURES.find(f => f.key === fk)?.label).join(', ') || 'Ninguno'}</div>
-              <div><b>Supabase URL:</b> {customCredentials.supabaseUrl}</div>
-              <div><b>Supabase Key:</b> {customCredentials.supabaseKey}</div>
-              <div><b>Vercel Token:</b> {customCredentials.vercelToken}</div>
-              <div><b>Pexels Key:</b> {customCredentials.pexelsKey}</div>
-              <button type="button" onClick={prevStep} style={{ marginRight: 8 }}>Atrás</button>
-              <button type="button" onClick={nextStep} style={{ marginLeft: 8 }}>Continuar</button>
+          </SectionCard>
+
+          {/* Integrate AI */}
+          <SectionCard
+            id="ai"
+            title="Integrate AI"
+            desc="Add AI capabilities to your project"
+            icon={Brain}
+            ready={projectData.aiModels.length > 0}
+          >
+            <div className="space-y-6">
+              <div>
+                <h4 className="font-semibold text-white mb-3">Language AI</h4>
+                <p className="text-sm text-gray-400 mb-3">Enhance your project with AI capabilities</p>
+                <div className="space-y-2">
+                  {aiModels.map((model) => (
+                    <button
+                      key={model.id}
+                      onClick={() => toggleAIModel(model.id)}
+                      className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition-all ${
+                        projectData.aiModels.includes(model.id)
+                          ? 'border-blue-500 bg-blue-500/10'
+                          : 'border-gray-700 bg-gray-800 hover:border-gray-600'
+                      }`}
+                    >
+                      <div className={`w-5 h-5 rounded-full border-2 ${
+                        projectData.aiModels.includes(model.id)
+                          ? 'bg-blue-600 border-blue-600'
+                          : 'border-gray-600'
+                      }`} />
+                      <div className="text-left">
+                        <div className="text-white font-medium">{model.name}</div>
+                        <div className="text-xs text-gray-400">{model.desc}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-semibold text-white mb-3">Image Generation</h4>
+                <p className="text-sm text-gray-400 mb-3">Optional image generation models</p>
+                <div className="space-y-2 opacity-50">
+                  {imageModels.map((model) => (
+                    <div
+                      key={model.id}
+                      className="flex items-center gap-3 p-3 rounded-lg border-2 border-gray-800 bg-gray-900"
+                    >
+                      <div className="w-5 h-5 rounded-full border-2 border-gray-700" />
+                      <span className="text-gray-500">{model.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <Button onClick={() => toggleSection('cursor')} className="w-full">
+                Continue to Setup →
+              </Button>
             </div>
-          )}
-        </div>
-        {/* Paso 6: Submit final */}
-        <div style={{ marginBottom: 20, border: step >= 5 ? '2px solid #1976d2' : '1px solid #ddd', borderRadius: 8, padding: 16, background: step >= 5 ? '#f0f6ff' : '#fafbfc' }}>
-          <div onClick={() => setStep(5)} style={{ cursor: 'pointer' }}><b>6. Guardar proyecto</b></div>
-          {step >= 5 && (
-            <div style={{ marginTop: 8 }}>
-              <button type="button" onClick={prevStep} disabled={submitting}>Atrás</button>
-              <button type="submit" style={{ marginLeft: 8 }} disabled={submitting || success}>Guardar proyecto</button>
-              {submitting && <span style={{ marginLeft: 16, color: '#888' }}>Enviando...</span>}
-              {error && <div style={{ color: 'red', marginTop: 12 }}>{error}</div>}
-              {success && <div style={{ color: 'green', marginTop: 12 }}><b>¡Proyecto creado exitosamente!</b></div>}
+          </SectionCard>
+
+          {/* Cursor */}
+          <SectionCard
+            id="cursor"
+            title="Cursor"
+            desc="Download & install Cursor"
+            icon={Mouse}
+            ready={projectData.cursor.ready}
+          >
+            <div className="space-y-4">
+              <p className="text-sm text-gray-300">
+                Cursor is an AI-powered code editor that helps you build faster with intelligent code completion and chat.
+              </p>
+              <div className="space-y-3">
+                <a
+                  href="https://cursor.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-blue-400 hover:text-blue-300"
+                >
+                  <span>1. Visit cursor.com and download</span>
+                  <ExternalLink size={14} />
+                </a>
+                <div className="text-gray-300">2. Install and open Cursor</div>
+              </div>
+              <Button
+                onClick={() => setProjectData({...projectData, cursor: { installed: true, ready: true }})}
+                variant={projectData.cursor.ready ? 'outline' : 'default'}
+                className="w-full"
+              >
+                {projectData.cursor.ready ? '✓ Mark Done' : 'Mark as Done'}
+              </Button>
             </div>
-          )}
-        </div>
-      </form>
-    </div>
-  );
-}
+          </SectionCard>
+
+          {/* GitHub */}
+          <SectionCard
+            id="github"
+            title="GitHub"
+            desc="Create your GitHub repository"
+            icon={Github}
+            ready={projectData.github.ready}
+          >
+            <div className="space-y-4">
+              <p className="text-sm text-gray-300">
+                Store your code on GitHub for version control and collaboration.
+              </p>
+              <input
+                type="text"
+                placeholder="Repository name (e.g., my-awesome-project)"
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white focus:border-blue-500 outline-none"
+                value={projectData.github.repo}
+                onChange={(e) => setProjectData({...projectData, github: { repo: e.target.value, ready: !!e.target.value }})}
+              />
+            </div>
+          </SectionCard>
+
+          {/* Claude Code */}
+          <SectionCard
+            id="claude"
+            title="Claude Code"
+            desc="Install Claude Code CLI for AI assistance"
+            icon={CodeIcon}
+            ready={projectData.claudeCode.ready}
+          >
+            <div className="space-y-4">
+              <p className="text-sm text-gray-300">
+                Claude Code CLI provides AI-powered assistance directly in your terminal.
+              </p>
+              <Button
+                onClick={() => setProjectData({...projectData, claudeCode: { installed: true, ready: true }})}
+                variant={projectData.claudeCode.ready ? 'outline' : 'default'}
+                className="w-full"
+              >
+                {projectData.claudeCode.ready ? '✓ Installed' : 'Mark as Installed'}
+              </Button>
+            </div>
+          </SectionCard>
+
+          {/* Supabase */}
+          <SectionCard
