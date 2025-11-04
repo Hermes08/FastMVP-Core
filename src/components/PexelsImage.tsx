@@ -1,5 +1,4 @@
 'use client';
-
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 
@@ -40,8 +39,10 @@ const PexelsImage: React.FC<PexelsImageProps> = ({
   const [imageData, setImageData] = useState<PexelsPhoto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [generatedCaption, setGeneratedCaption] = useState<string>('');
-  const [dynamicAltText, setDynamicAltText] = useState<string>('');
+
+  // Generate dynamic alt text and caption
+  const dynamicAltText = altText || `${searchQuery} - Professional stock photo`;
+  const generatedCaption = caption || `Image illustrating ${searchQuery}`;
 
   useEffect(() => {
     const fetchImage = async () => {
@@ -49,47 +50,29 @@ const PexelsImage: React.FC<PexelsImageProps> = ({
         setLoading(true);
         setError(null);
 
-        const apiKey = process.env.NEXT_PUBLIC_PEXELS_API_KEY;
-        if (!apiKey) {
-          throw new Error('Pexels API key not configured');
-        }
-
         const response = await fetch(
           `https://api.pexels.com/v1/search?query=${encodeURIComponent(searchQuery)}&per_page=1`,
           {
             headers: {
-              Authorization: apiKey,
+              Authorization: process.env.NEXT_PUBLIC_PEXELS_API_KEY || '',
             },
           }
         );
 
         if (!response.ok) {
-          throw new Error(`Pexels API error: ${response.status}`);
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const data = await response.json();
+
         if (data.photos && data.photos.length > 0) {
-          const photo = data.photos[0];
-          setImageData(photo);
-
-          // Generar alt text dinámico
-          const dynamicAlt =
-            altText ||
-            `${photo.alt || searchQuery} - Photo by ${photo.photographer}`;
-          setDynamicAltText(dynamicAlt);
-
-          // Generar caption automático
-          const autoCaption =
-            caption ||
-            `${searchQuery.charAt(0).toUpperCase() + searchQuery.slice(1)} - Photography by ${photo.photographer}`;
-          setGeneratedCaption(autoCaption);
+          setImageData(data.photos[0]);
         } else {
-          throw new Error('No images found for the search query');
+          setError('No images found for this search query');
         }
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-        setError(errorMessage);
-        console.error('Error fetching image:', err);
+        console.error('Error fetching Pexels image:', err);
+        setError('Failed to load image from Pexels');
       } finally {
         setLoading(false);
       }
@@ -98,33 +81,44 @@ const PexelsImage: React.FC<PexelsImageProps> = ({
     if (searchQuery) {
       fetchImage();
     }
-  }, [searchQuery, altText, caption]);
+  }, [searchQuery]);
 
+  // Loading state
   if (loading) {
     return (
-      <div className={`flex items-center justify-center bg-gray-200 ${className}`} style={{ width, height }}>
-        <div className="text-gray-600">Loading image...</div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className={`flex items-center justify-center bg-red-100 ${className}`} style={{ width, height }}>
-        <div className="text-red-600 text-center">
-          <p>Error loading image</p>
-          <p className="text-sm">{error}</p>
+      <div className={`flex items-center justify-center ${className}`}>
+        <div className="animate-pulse">
+          <div
+            className="bg-gray-200"
+            style={{ width: `${width}px`, height: `${height}px` }}
+          />
         </div>
       </div>
     );
   }
 
-  if (!imageData) {
-    return null;
+  // Error state
+  if (error) {
+    return (
+      <div className={`flex flex-col items-center justify-center p-4 ${className}`}>
+        <div className="text-red-600 mb-2">⚠️</div>
+        <p className="text-sm text-gray-600">{error}</p>
+      </div>
+    );
   }
 
+  // No image data
+  if (!imageData) {
+    return (
+      <div className={`flex items-center justify-center ${className}`}>
+        <p className="text-sm text-gray-600">No image available</p>
+      </div>
+    );
+  }
+
+  // Render image
   return (
-    <figure className={`w-full ${className}`}>
+    <figure className={className}>
       <div
         className="relative overflow-hidden bg-gray-100"
         style={{
