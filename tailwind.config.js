@@ -33,6 +33,7 @@ module.exports = {
           900: '#0f172a',
         },
         border: 'hsl(var(--border))',
+        background: 'hsl(var(--background))',
       },
       borderColor: {
         border: 'hsl(var(--border))',
