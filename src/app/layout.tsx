@@ -1,43 +1,31 @@
-import React from 'react';
-import Sidebar from '@/components/layout/Sidebar';
-import TopNav from '@/components/layout/TopNav';
-import '@/styles/globals.css';
+// src/app/layout.tsx
+import type { Metadata } from 'next'
+import { Inter } from 'next/font/google'
+import Sidebar from '@/components/Sidebar'
+import './globals.css'
 
-interface RootLayoutProps {
-  children: React.ReactNode;
+const inter = Inter({ subsets: ['latin'] })
+
+export const metadata: Metadata = {
+  title: 'FastMVP Core - 5 Day Sprint Framework',
+  description: 'Build production-ready MVPs in 5 days with AI-powered development',
 }
 
-export const metadata = {
-  title: 'FastMVP - 5 Day Sprint',
-  description: 'Build faster with the 5 Day Sprint methodology',
-};
-
-export default function RootLayout({ children }: RootLayoutProps) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return (
     <html lang="en">
-      <head>
-        <meta charSet="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>{metadata.title}</title>
-        <meta name="description" content={metadata.description} />
-      </head>
-      <body>
-        <div className="layout-container">
-          {/* Top Navigation */}
-          <TopNav />
-          
-          {/* Main Content Area */}
-          <div className="layout-main">
-            {/* Sidebar Navigation */}
-            <Sidebar />
-            
-            {/* Page Content */}
-            <main className="layout-content">
-              {children}
-            </main>
-          </div>
+      <body className={inter.className}>
+        <div className="flex min-h-screen bg-white">
+          <Sidebar />
+          <main className="flex-1 ml-64 bg-white">
+            {children}
+          </main>
         </div>
       </body>
     </html>
-  );
+  )
 }
