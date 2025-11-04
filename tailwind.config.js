@@ -32,6 +32,10 @@ module.exports = {
           800: '#1e293b',
           900: '#0f172a',
         },
+        border: 'hsl(var(--border))',
+      },
+      borderColor: {
+        border: 'hsl(var(--border))',
       },
       spacing: {
         '128': '32rem',
